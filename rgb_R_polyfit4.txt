@@ -1,0 +1,78 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+import matplotlib as mpl
+
+# ============================================
+X = np.array([
+[0, 0],[0, 20],[0, 50],[0, 100],[0, 150],[0, 200],
+[50, 0],[50, 20],[50, 50],[50, 100],[50, 150],[50, 200],
+[100, 0],[100, 20],[100, 50],[100, 100],[100, 150],[100, 200],
+[150, 0],[150, 20],[150, 50],[150, 100],[150, 150],[150, 200],
+[200, 0],[200, 20],[200, 50],[200, 100],[200, 150],[200, 200]
+])
+
+# R_ratio = R / (R + G + B)
+y_R = np.array([
+0.1742, 0.1758, 0.1744, 0.1704, 0.1543, 0.1563,
+0.1816, 0.1831, 0.1840, 0.1792, 0.1697, 0.1594,
+0.2697, 0.2588, 0.2346, 0.2164, 0.1765, 0.1707,
+0.3700, 0.3508, 0.3413, 0.2936, 0.2305, 0.2064,
+0.4344, 0.4290, 0.4134, 0.3802, 0.3569, 0.3348
+])
+
+# ============================================
+def fit_and_plot(X, y, label):
+    poly = PolynomialFeatures(degree=2, include_bias=False)  
+    X_poly = poly.fit_transform(X)  
+
+    # 回归拟合
+    model = LinearRegression()
+    model.fit(X_poly, y)
+    y_pred = model.predict(X_poly)
+    
+    # 打印模型信息
+    print(f"\n--- {label} 模型 ---")
+    print(f"R² = {r2_score(y, y_pred):.4f}")
+    coef = model.coef_
+    intercept = model.intercept_
+    print("拟合公式：")
+    print("y = {:.4f} + {:.4f}*A + {:.4f}*B + {:.4f}*A^2 + {:.4f}*A*B + {:.4f}*B^2".format(
+        intercept, coef[0], coef[1], coef[2], coef[3], coef[4]
+    ))
+
+    # 生成预测曲面
+    a_range = np.linspace(X[:,0].min(), X[:,0].max(), 50)
+    b_range = np.linspace(X[:,1].min(), X[:,1].max(), 50)
+    A_grid, B_grid = np.meshgrid(a_range, b_range)
+    X_grid = np.c_[A_grid.ravel(), B_grid.ravel()]
+    Z_grid = model.predict(poly.transform(X_grid)).reshape(A_grid.shape)
+
+    fig = plt.figure(figsize=(14, 6))  # 图像更大，避免拥挤
+
+    # 3D 曲面图
+    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    ax1.plot_surface(A_grid, B_grid, Z_grid, cmap='viridis', alpha=0.8)
+    ax1.scatter(X[:,0], X[:,1], y, color='red')
+    ax1.set_xlabel('ERY (μg/L)')
+    ax1.set_ylabel('TET (μg/L)')
+    ax1.set_zlabel(label)
+    ax1.set_title(f"{label} Fitted surface")
+    format_3d_axes(ax1, labelsize=14, titlesize=16)
+
+    # 残差图
+    residuals = y - y_pred
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.scatter(y_pred, residuals, color='blue')
+    ax2.axhline(0, color='red', linestyle='--')
+    ax2.set_xlabel('Predicted value')
+    ax2.set_ylabel('Residual')
+    ax2.set_title(f"{label} Residuals")
+    format_2d_axes(ax2, labelsize=14, titlesize=16)
+
+# ============================================
+# 运行 R_ratio 拟合
+# ============================================
+fit_and_plot(X, y_R, "R_ratio")

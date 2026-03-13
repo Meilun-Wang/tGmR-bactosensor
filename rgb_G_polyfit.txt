@@ -1,0 +1,107 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+# ============================================
+X = np.array([
+[0, 0],
+[0, 20],
+[0, 50],
+[0, 100],
+[0, 150],
+[0, 200],
+[50, 0],
+[50, 20],
+[50, 50],
+[50, 100],
+[50, 150],
+[50, 200],
+[100, 0],
+[100, 20],
+[100, 50],
+[100, 100],
+[100, 150],
+[100, 200],
+[150, 0],
+[150, 20],
+[150, 50],
+[150, 100],
+[150, 150],
+[150, 200],
+[200, 0],
+[200, 20],
+[200, 50],
+[200, 100],
+[200, 150],
+[200, 200]
+])
+
+# G_ratio = G / (R + G + B)
+y_G = np.array([
+0.3465, 0.3554, 0.3699, 0.3998, 0.4338, 0.4440,
+0.3441, 0.3483, 0.3561, 0.3869, 0.4256, 0.4462,
+0.3142, 0.3187, 0.3339, 0.3777, 0.4133, 0.4354,
+0.2560, 0.2659, 0.2838, 0.3410, 0.3838, 0.4196,
+0.2159, 0.2227, 0.2406, 0.2866, 0.3244, 0.3472
+])
+# ============================================
+def fit_and_plot(X, y, label):
+    poly = PolynomialFeatures(degree=2, include_bias=False)  
+    X_poly = poly.fit_transform(X)  
+# ============================================
+#  回归拟合
+# ============================================
+    model = LinearRegression()
+    model.fit(X_poly, y)
+    y_pred = model.predict(X_poly)
+    
+# ============================================
+ # 打印模型信息
+    print(f"\n--- {label} 模型 ---")
+    print(f"R² = {r2_score(y, y_pred):.4f}")
+    print("回归系数：", model.coef_)
+    print("截距：", model.intercept_)
+    coef = model.coef_
+    intercept = model.intercept_
+
+    print("拟合公式：")
+    print("y = {:.4f} + {:.4f}*A + {:.4f}*B + {:.4f}*A^2 + {:.4f}*A*B + {:.4f}*B^2".format(
+    intercept, coef[0], coef[1], coef[2], coef[3], coef[4]
+))
+# ============================================
+# 5. 生成预测曲面（用于画图）
+# ============================================
+    a_range = np.linspace(X[:,0].min(), X[:,0].max(), 50)
+    b_range = np.linspace(X[:,1].min(), X[:,1].max(), 50)
+    A_grid, B_grid = np.meshgrid(a_range, b_range)
+    X_grid = np.c_[A_grid.ravel(), B_grid.ravel()]
+    Z_grid = model.predict(poly.transform(X_grid)).reshape(A_grid.shape)
+
+    fig = plt.figure(figsize=(12, 5))
+# ============================================
+# 画 3D 曲面
+# ============================================
+    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    ax1.plot_surface(A_grid, B_grid, Z_grid, cmap='viridis', alpha=0.8)
+    ax1.scatter(X[:,0], X[:,1], y, color='green')
+    ax1.set_xlabel('ERY (μg/L)')
+    ax1.set_ylabel('TET (μg/L)')
+    ax1.set_zlabel('G/(R+G+B)')
+    ax1.set_title("G/(R+G+B) Fitted surface")
+
+# ============================================
+# 残差图
+# ============================================
+    residuals = y - y_pred
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.scatter(y_pred, residuals)
+    ax2.axhline(0, color='green', linestyle='--')
+    ax2.set_xlabel('Predicted value')
+    ax2.set_ylabel('Residual')
+    ax2.set_title("G/(R+G+B) Residuals")
+
+    plt.tight_layout()
+    plt.show()
+# 对 G_ratio 拟合
+fit_and_plot(X, y_G, "G_ratio")
